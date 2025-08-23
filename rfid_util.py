@@ -184,7 +184,7 @@ class RFIDUtil:
         # 检查是否包含超时模式且重复出现
         if timeout_pattern in data:
             pattern_count = data.count(timeout_pattern)
-            if pattern_count >= 3:  # 重复3次以上视为超时
+            if pattern_count >= 6:  # 重复5次以上视为超时
                 print(f'[超时检测] 检测到超时响应，模式重复{pattern_count}次')
                 return True
         

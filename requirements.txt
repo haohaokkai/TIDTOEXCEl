@@ -5,7 +5,7 @@ Pillow>=9.0.0            # 图片处理和显示
 
 # 摄像头和OCR功能依赖（camera.py）
 opencv-python>=4.8.0     # 摄像头操作和图像处理
-easyocr>=1.7.0           # OCR文字识别
+rapidocr-onnxruntime     # 使用RapidOCR替换easyocr
 pyserial>=3.5            # 串口通信
 
 # SVG处理依赖（可选）

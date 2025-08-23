@@ -27,7 +27,7 @@ except ImportError as e:
         pass
 
 try:
-    import easyocr
+    from rapidocr_onnxruntime import RapidOCR
     OCR_AVAILABLE = True
 except ImportError as e:
     print(f"警告: 无法导入OCR工具: {e}")
@@ -108,7 +108,7 @@ class DataRecorderApp:
         if OCR_AVAILABLE:
             try:
                 print("正在初始化OCR...")
-                self.ocr_reader = easyocr.Reader(['en'])
+                self.ocr_reader = RapidOCR()
                 print("✅ OCR初始化成功")
             except Exception as e:
                 print(f"❌ OCR初始化失败: {e}")
@@ -173,8 +173,24 @@ class DataRecorderApp:
         self.camera_combo.grid(row=1, column=1, sticky=(tk.W, tk.E), padx=(5, 5), pady=(0, 5))
         ttk.Button(config_frame, text="刷新", command=self.refresh_cameras).grid(row=1, column=2, padx=(0, 5), pady=(0, 5))
 
+        # 高级设置行
+        adv_settings_frame = ttk.Frame(config_frame)
+        adv_settings_frame.grid(row=2, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(10, 5))
+
+        # OCR识别次数
+        ttk.Label(adv_settings_frame, text="OCR次数:").pack(side=tk.LEFT, padx=(0, 2))
+        self.ocr_count_var = tk.StringVar(value=str(DEFAULT_OCR_REQUIRED_COUNT))
+        self.ocr_count_spinbox = ttk.Spinbox(adv_settings_frame, from_=1, to=10, textvariable=self.ocr_count_var, width=5)
+        self.ocr_count_spinbox.pack(side=tk.LEFT, padx=(0, 10))
+
+        # TID读取次数
+        ttk.Label(adv_settings_frame, text="TID次数:").pack(side=tk.LEFT, padx=(0, 2))
+        self.tid_count_var = tk.StringVar(value=str(DEFAULT_TID_REQUIRED_COUNT))
+        self.tid_count_spinbox = ttk.Spinbox(adv_settings_frame, from_=1, to=10, textvariable=self.tid_count_var, width=5)
+        self.tid_count_spinbox.pack(side=tk.LEFT, padx=(0, 15))
+
         # RFID重置按钮
-        ttk.Button(config_frame, text="RFID重置", command=self.rfid_reset, width=12).grid(row=2, column=0, columnspan=3, pady=(10, 5))
+        ttk.Button(adv_settings_frame, text="RFID重置", command=self.rfid_reset, width=12).pack(side=tk.LEFT)
 
         # 配置状态显示
         self.config_status_label = ttk.Label(config_frame, text="配置状态：未加载", foreground="gray")
@@ -183,6 +199,8 @@ class DataRecorderApp:
         # 绑定选择事件
         self.rfid_port_combo.bind('<<ComboboxSelected>>', self.on_rfid_port_changed)
         self.camera_combo.bind('<<ComboboxSelected>>', self.on_camera_changed)
+        self.ocr_count_var.trace_add("write", self.on_ocr_count_changed)
+        self.tid_count_var.trace_add("write", self.on_tid_count_changed)
 
         # 数据输入区域
         input_frame = ttk.LabelFrame(left_panel, text="数据输入", padding="10")
@@ -524,7 +542,7 @@ class DataRecorderApp:
             try:
                 # 使用计数验证读取TID，需要连续读取指定次数相同TID
                 tid = rfid_util.read_tid_with_count_verification(
-                    required_count=DEFAULT_TID_REQUIRED_COUNT,
+                    required_count=int(self.tid_count_var.get()),
                     max_duration=DEFAULT_TID_MAX_DURATION
                 )
 
@@ -605,7 +623,11 @@ class DataRecorderApp:
                         continue
 
                     # OCR识别
-                    result = self.ocr_reader.readtext(frame, detail=0)
+                    ocr_output, _ = self.ocr_reader(frame)
+                    if ocr_output:
+                        result = [text for _, text, _ in ocr_output]
+                    else:
+                        result = []
 
                     # 过滤7位字母+数字
                     seven_tags = [text for text in result if len(text) == 7]
@@ -620,7 +642,7 @@ class DataRecorderApp:
                             # 更新OCR结果显示
                             self.root.after(0, self._update_ocr_display, current_text, count)
 
-                            if count >= DEFAULT_OCR_REQUIRED_COUNT:  # 连续指定次数识别到相同文本
+                            if count >= int(self.ocr_count_var.get()):  # 连续指定次数识别到相同文本
                                 self.root.after(0, self._update_label_result, current_text)
                                 return
                         else:
@@ -643,7 +665,7 @@ class DataRecorderApp:
 
     def _update_ocr_display(self, text, count):
         """更新OCR识别结果显示"""
-        self.ocr_result_label.config(text=f"识别到: {text} (第{count}/{DEFAULT_OCR_REQUIRED_COUNT}次)")
+        self.ocr_result_label.config(text=f"识别到: {text} (第{count}/{self.ocr_count_var.get()}次)")
 
     def _update_label_result(self, label_text):
         """更新标签号识别结果"""
@@ -660,7 +682,7 @@ class DataRecorderApp:
         self.label_auto_btn.config(state="normal")
         self.label_var.set("")
         self.ocr_result_label.config(text="识别超时")
-        self.show_status_message(f"未能识别到连续{DEFAULT_OCR_REQUIRED_COUNT}次相同的7位标签号", "warning")
+        self.show_status_message(f"未能识别到连续{self.ocr_count_var.get()}次相同的7位标签号", "warning")
 
     def _update_label_error(self, error_msg):
         """更新标签号识别错误"""
@@ -883,7 +905,7 @@ class DataRecorderApp:
         """同步获取TID"""
         try:
             return rfid_util.read_tid_with_count_verification(
-                required_count=DEFAULT_TID_REQUIRED_COUNT,
+                required_count=int(self.tid_count_var.get()),
                 max_duration=DEFAULT_TID_MAX_DURATION
             )
         except EpcFrameDetectedException as e:
@@ -939,7 +961,11 @@ class DataRecorderApp:
                 if not ret:
                     continue
 
-                result = self.ocr_reader.readtext(frame, detail=0)
+                ocr_output, _ = self.ocr_reader(frame)
+                if ocr_output:
+                    result = [text for _, text, _ in ocr_output]
+                else:
+                    result = []
                 seven_tags = [text for text in result if len(text) == 7]
 
                 if seven_tags:
@@ -952,7 +978,7 @@ class DataRecorderApp:
                         # 更新OCR结果显示（自动获取模式）
                         self.root.after(0, self._update_ocr_display, current_text, count)
                         
-                        if count >= DEFAULT_OCR_REQUIRED_COUNT:  # 连续指定次数识别到相同文本
+                        if count >= int(self.ocr_count_var.get()):  # 连续指定次数识别到相同文本
                             return current_text
                     else:
                         last_recognized = current_text
@@ -1542,8 +1568,14 @@ class DataRecorderApp:
             camera_index = get_config('camera_index', 0)
             self.camera_var.set(f"摄像头 {camera_index}")
 
+            # 加载OCR和TID次数配置
+            ocr_count = get_config('ocr_required_count', DEFAULT_OCR_REQUIRED_COUNT)
+            self.ocr_count_var.set(str(ocr_count))
+            tid_count = get_config('tid_required_count', DEFAULT_TID_REQUIRED_COUNT)
+            self.tid_count_var.set(str(tid_count))
+
             self.config_status_label.config(text="配置状态：已加载", foreground="green")
-            print(f"✓ 配置已加载: RFID端口={rfid_port}, 摄像头={camera_index}")
+            print(f"✓ 配置已加载: RFID端口={rfid_port}, 摄像头={camera_index}, OCR次数={ocr_count}, TID次数={tid_count}")
 
         except Exception as e:
             self.config_status_label.config(text="配置状态：加载失败", foreground="red")
@@ -1624,6 +1656,32 @@ class DataRecorderApp:
             except Exception as e:
                 self.config_status_label.config(text="配置状态：保存失败", foreground="red")
                 print(f"⚠️ RFID端口配置保存失败: {e}")
+
+    def on_ocr_count_changed(self, *args):
+        """OCR识别次数改变事件"""
+        try:
+            count = int(self.ocr_count_var.get())
+            set_config('ocr_required_count', count)
+            save_config()
+            print(f"✓ OCR识别次数已保存: {count}")
+        except (ValueError, TypeError):
+            # 忽略无效输入
+            pass
+        except Exception as e:
+            print(f"⚠️ OCR识别次数保存失败: {e}")
+
+    def on_tid_count_changed(self, *args):
+        """TID读取次数改变事件"""
+        try:
+            count = int(self.tid_count_var.get())
+            set_config('tid_required_count', count)
+            save_config()
+            print(f"✓ TID读取次数已保存: {count}")
+        except (ValueError, TypeError):
+            # 忽略无效输入
+            pass
+        except Exception as e:
+            print(f"⚠️ TID读取次数保存失败: {e}")
 
     def on_camera_changed(self, event):
         """摄像头选择改变事件"""
