@@ -1,0 +1,5 @@
+{
+    "rfid_port": "COM4",
+    "rfid_baudrate": 115200,
+    "camera_index": 0
+}

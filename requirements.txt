@@ -1,0 +1,17 @@
+# 数据记录软件依赖包
+# 核心功能依赖
+openpyxl>=3.1.0          # Excel文件处理
+Pillow>=9.0.0            # 图片处理和显示
+
+# 摄像头和OCR功能依赖（camera.py）
+opencv-python>=4.8.0     # 摄像头操作和图像处理
+easyocr>=1.7.0           # OCR文字识别
+pyserial>=3.5            # 串口通信
+
+# SVG处理依赖（可选）
+cairosvg>=2.5.0          # SVG转换为PNG（Windows可能需要额外配置）
+
+# 系统依赖说明：
+# tkinter - Python内置GUI库，无需单独安装
+# xml.etree.ElementTree - Python内置XML处理库
+# datetime, os, io, sys, tempfile - Python标准库
