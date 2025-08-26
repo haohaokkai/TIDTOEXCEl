@@ -1,3 +1,26 @@
-# 数据记录软件最小依赖包（仅核心功能）
-openpyxl>=3.1.0          # Excel文件处理
-Pillow>=9.0.0            # 图片处理和显示
+# TIDtoExcel - 最小化依赖列表
+# 仅包含核心功能所需的基础依赖包
+
+# Excel文件处理（必需）
+openpyxl>=3.0.9
+
+# 图像处理（必需）
+Pillow>=8.3.2
+
+# 串口通信（必需）
+pyserial>=3.5
+
+# 摄像头支持（必需）
+opencv-python>=4.5.3.56
+
+# OCR识别（必需）
+easyocr>=1.6.2
+
+# 数值计算（easyocr依赖）
+numpy>=1.21.0
+
+# 最小化安装说明：
+# pip install -r requirements_minimal.txt
+
+# 注意：此最小化列表仅包含核心功能依赖
+# 如需完整功能，请使用 requirements.txt
