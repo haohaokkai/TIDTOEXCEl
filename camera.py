@@ -16,6 +16,7 @@ def calcu_check_sum(command):
         checksum += byte
     return (~checksum + 1) & 0xFF  # 取反并加 1，然后取低 8 位
 
+
 # 读取 RFID 数据的函数
 def read_RFID_data(serial_port, read_tag):
     # 进行校验和计算，拼好发送指令
