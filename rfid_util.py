@@ -7,8 +7,13 @@ import time
 import serial
 from typing import Dict,List, Optional, Any
 import threading
-
-
+import sys
+import os
+# PyInstaller 打包后获取资源路径的工具函数
+def resource_path(relative_path):
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath('.'), relative_path)
 class EpcFrameDetectedException(Exception):
     """检测到EPC帧时抛出的异常，提示需要重置RFID设备"""
     pass

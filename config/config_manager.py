@@ -29,23 +29,30 @@ class ConfigManager:
         Args:
             config_file: 配置文件路径
         """
-        # 统一配置文件路径到 C:\Users\<用户名>\.siweiqi\config.json
-        user_home = os.path.expanduser("~")
-        siweiqi_dir = os.path.join(user_home, '.readTags')
-        target_config_path = os.path.join(siweiqi_dir, 'config.json')
-        original_config_path = os.path.join(os.path.dirname(__file__), 'config.json')
-
-        # 确保 .siweiqi 目录存在
-        os.makedirs(siweiqi_dir, exist_ok=True)
-
+        # 获取可执行文件所在目录下的_internal文件夹中的config.json
+        if getattr(sys, 'frozen', False):
+            # 如果是打包后的可执行文件
+            exe_dir = os.path.dirname(sys.executable)
+        else:
+            # 如果是开发环境
+            exe_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        internal_dir = os.path.join(exe_dir, '_internal')
+        target_config_path = os.path.join(internal_dir, 'config.json')
+        
+        # 确保 _internal 目录存在
+        os.makedirs(internal_dir, exist_ok=True)
+        
+        # 如果目标配置文件不存在，尝试从原始位置复制
         if not os.path.exists(target_config_path):
             print(f"目标配置文件 {target_config_path} 不存在。")
+            original_config_path = os.path.join(os.path.dirname(__file__), 'config.json')
             if os.path.exists(original_config_path):
                 print(f"正在从 {original_config_path} 复制配置文件到 {target_config_path}")
                 shutil.copyfile(original_config_path, target_config_path)
                 print("配置文件复制成功。")
+        
         self._config_file = target_config_path
-
         self._load_from_file(self._config_file)
     
     def _load_from_file(self, file_path: str) -> None:

@@ -1,0 +1,7 @@
+{
+    "rfid_port": "COM4",
+    "rfid_baudrate": 115200,
+    "camera_index": 1,
+    "ocr_required_count": 5,
+    "tid_required_count": 5
+}

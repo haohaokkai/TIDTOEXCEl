@@ -12,6 +12,8 @@ import cv2
 import numpy as np
 import serial.tools.list_ports
 from config.config_manager import get_config, set_config, save_config
+import sys
+
 
 # 导入RFID和OCR功能
 try:
@@ -55,6 +57,11 @@ DEFAULT_THREAD_STOP_WAIT = 0.5      # 线程停止等待时间(秒)
 DEFAULT_CAMERA_STOP_WAIT = 0.1      # 摄像头停止等待时间(秒)
 # ==================== 配置常量结束 ====================
 
+# PyInstaller 打包后获取资源路径的工具函数
+def resource_path(relative_path):
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath('.'), relative_path)
 
 class DataRecorderApp:
     def __init__(self, root):
@@ -108,8 +115,13 @@ class DataRecorderApp:
         if OCR_AVAILABLE:
             try:
                 print("正在初始化OCR...")
-                self.ocr_reader = RapidOCR()
+                # self.ocr_reader = RapidOCR()
+                # 修改后（指定模型文件夹路径）
+                config_path = resource_path("rapidocr_onnxruntime/config.yaml")
+                self.ocr_reader = RapidOCR(config_path=config_path)
                 print("✅ OCR初始化成功")
+                # import rapidocr_onnxruntime
+                # print("OCR模型路径：", rapidocr_onnxruntime.__path__)
             except Exception as e:
                 print(f"❌ OCR初始化失败: {e}")
                 self.ocr_reader = None
@@ -1726,7 +1738,13 @@ def main():
 
     # 设置窗口图标（如果有的话）
     try:
-        root.iconbitmap("images\logo.ico")
+        # root.iconbitmap("images\logo.ico")
+        icon_path = resource_path(os.path.join("images", "logo.ico"))
+        if os.path.exists(icon_path):
+            # 确保路径正确且文件存在
+            root.iconbitmap(icon_path)
+        else:
+            print(f"警告：未找到图标文件 {icon_path}")
     except:
         pass  # 如果没有图标文件就忽略
 
@@ -1745,3 +1763,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+ 
